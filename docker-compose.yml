@@ -1,0 +1,41 @@
+version: "3.9"
+services:
+  server1:
+    build:
+      context: .
+    container_name: server1
+    command: ["1", "server2"]
+    networks:
+      - kv-network
+  server2:
+    build:
+      context: .
+    container_name: server2
+    command: ["2", "server3"]
+    networks:
+      - kv-network
+  server3:
+    build:
+      context: .
+    container_name: server3
+    command: ["3", "server4"]
+    networks:
+      - kv-network
+  server4:
+    build:
+      context: .
+    container_name: server4
+    command: ["4", "server5"]
+    networks:
+      - kv-network
+  server5:
+    build:
+      context: .
+    container_name: server5
+    command: ["5", "server1"]
+    networks:
+      - kv-network
+
+networks:
+  kv-network:
+    driver: bridge

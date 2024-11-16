@@ -12,4 +12,16 @@ public interface HandleRequestsInterface extends Remote {
     String processRequest(String request) throws RemoteException;
 
     String validateRequest(String input) throws RemoteException;
+
+    // Two-Phase Commit Methods
+    String prepare() throws RemoteException;
+
+    String commit() throws RemoteException;
+
+    String abort() throws RemoteException;
+
+    // Token Ring Methods
+    void receiveToken() throws RemoteException;
+
+    void passToken() throws RemoteException;
 }

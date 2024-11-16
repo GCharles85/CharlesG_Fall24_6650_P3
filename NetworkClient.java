@@ -4,9 +4,17 @@ import java.rmi.registry.Registry;
 public class NetworkClient {
 
     public static void main(String[] args) {
+        // Server initialization
+        if (args.length < 1) {
+            System.err.println("Usage: java NetworkClient <serverId>");
+            return;
+        }
+
+        String serverId = args[0]; 
+
         try {
             // Connect to the RMI registry
-            Registry registry = LocateRegistry.getRegistry("server", 1099);
+            Registry registry = LocateRegistry.getRegistry(serverId, 1099);
 
             // Lookup the remote object
             HandleRequestsInterface stub = (HandleRequestsInterface) registry.lookup("HandleRequests");

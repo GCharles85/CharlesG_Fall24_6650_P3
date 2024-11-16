@@ -4,35 +4,45 @@ services:
     build:
       context: .
     container_name: server1
-    command: ["1", "server2"]
+    command: ["1", "2", "true"]  # server1 starts with the token
+    environment:
+      - CENTRAL_REGISTRY_HOST=server1
     networks:
       - kv-network
   server2:
     build:
       context: .
     container_name: server2
-    command: ["2", "server3"]
+    command: ["2", "3", "false"]
+    environment:
+      - CENTRAL_REGISTRY_HOST=server1
     networks:
       - kv-network
   server3:
     build:
       context: .
     container_name: server3
-    command: ["3", "server4"]
+    command: ["3", "4", "false"]
+    environment:
+      - CENTRAL_REGISTRY_HOST=server1
     networks:
       - kv-network
   server4:
     build:
       context: .
     container_name: server4
-    command: ["4", "server5"]
+    command: ["4", "5", "false"]
+    environment:
+      - CENTRAL_REGISTRY_HOST=server1
     networks:
       - kv-network
   server5:
     build:
       context: .
     container_name: server5
-    command: ["5", "server1"]
+    command: ["5", "1", "false"]  # Last server points back to server1
+    environment:
+      - CENTRAL_REGISTRY_HOST=server1
     networks:
       - kv-network
 

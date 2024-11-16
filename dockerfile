@@ -8,4 +8,4 @@ WORKDIR /app
 COPY . /app
 
 # Set the entry point to run the server
-ENTRYPOINT ["java", "ThreadedMultiProtocolServer"]
+ENTRYPOINT ["java", "Server"]

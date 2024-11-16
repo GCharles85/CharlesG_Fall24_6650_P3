@@ -1,19 +1,21 @@
 import java.rmi.RemoteException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.rmi.registry.Registry;
+import java.rmi.registry.LocateRegistry;
 
 // Define the interface for your RPC methods (PUT, GET, DELETE)
 public class HandleRequests implements HandleRequestsInterface {
 
     private ConcurrentHashMap<String, String> keyValueStore;
     private String serverId;
-    private String nextServer; // To store the address of the next server in the token ring
+    private String nextServerId; // To store the address of the next server in the token ring
     private boolean hasToken = false; // Indicates if this server has the token
 
     public HandleRequests(String serverId, String nextServer) {
         this.keyValueStore = new ConcurrentHashMap<>();
         this.serverId = serverId;
-        this.nextServer = nextServer;
+        this.nextServerId = nextServer;
     }
 
     // Two-Phase Commit States
@@ -29,7 +31,19 @@ public class HandleRequests implements HandleRequestsInterface {
     public synchronized void passToken() {
         hasToken = false;
         // Logic to pass token to next server (e.g., through RMI)
-        System.out.println("Server " + serverId + " passing token to " + nextServer);
+        System.out.println(serverId + " passing token to " + nextServerId);
+        
+        try{
+            Registry registry = LocateRegistry.getRegistry(nextServerId, 1099);
+            HandleRequestsInterface nextServer = 
+            (HandleRequestsInterface) registry.lookup("HandleRequests-" + nextServerId);
+            nextServer.receiveToken();
+        }catch(Exception e){
+            e.printStackTrace();
+        }
+        
+        this.hasToken = false;  // Pass token, so this server no longer has it
+        System.out.println("Server " + serverId + " passing token to " + nextServerId);
     }
 
     @Override

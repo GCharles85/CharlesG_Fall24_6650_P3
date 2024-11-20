@@ -51,7 +51,7 @@ public class HandleRequests implements HandleRequestsInterface {
         // Prepare phase
         if (isPrepared.get()) {
             keyValueStore.put(key, value);
-            commitState.set(true); // Simulate successful commit
+            //commitState.set(true); // Simulate successful commit
             return "Key " + key + " with value " + value + " successfully committed.";
         }
         return "Operation failed: Server not in prepared state.";
@@ -67,7 +67,7 @@ public class HandleRequests implements HandleRequestsInterface {
     public synchronized String delete(String key) throws RemoteException {
         if (isPrepared.get()) {
             keyValueStore.remove(key);
-            commitState.set(true); // Simulate successful commit
+            //commitState.set(true); // Simulate successful commit
             return "Key " + key + " successfully deleted.";
         }
         return "Operation failed: Server not in prepared state.";

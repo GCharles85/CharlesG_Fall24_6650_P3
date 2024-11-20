@@ -10,6 +10,8 @@ services:
     networks:
       - kv-network
   server2:
+    depends_on:
+        - server1
     build:
       context: .
     container_name: server2
@@ -18,33 +20,8 @@ services:
       - CENTRAL_REGISTRY_HOST=server1
     networks:
       - kv-network
-  server3:
-    build:
-      context: .
-    container_name: server3
-    command: ["3", "4", "false"]
-    environment:
-      - CENTRAL_REGISTRY_HOST=server1
-    networks:
-      - kv-network
-  server4:
-    build:
-      context: .
-    container_name: server4
-    command: ["4", "5", "false"]
-    environment:
-      - CENTRAL_REGISTRY_HOST=server1
-    networks:
-      - kv-network
-  server5:
-    build:
-      context: .
-    container_name: server5
-    command: ["5", "1", "false"]  # Last server points back to server1
-    environment:
-      - CENTRAL_REGISTRY_HOST=server1
-    networks:
-      - kv-network
+  
+    
 
 networks:
   kv-network:

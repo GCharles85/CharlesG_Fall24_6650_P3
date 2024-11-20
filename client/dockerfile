@@ -1,0 +1,17 @@
+# Use an OpenJDK base image
+FROM openjdk:11-jdk-slim
+
+# Set the working directory inside the container
+WORKDIR /app
+
+# Copy the client source code into the container
+COPY . /app/
+
+# Compile the client Java file
+RUN javac NetworkClient.java
+
+# Set the CENTRAL_REGISTRY_HOST environment variable
+ENV CENTRAL_REGISTRY_HOST=server1
+
+# Set the entry point to run the client
+ENTRYPOINT ["java", "NetworkClient"]

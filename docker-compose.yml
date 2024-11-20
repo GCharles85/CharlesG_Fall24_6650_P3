@@ -20,7 +20,15 @@ services:
       - CENTRAL_REGISTRY_HOST=server1
     networks:
       - kv-network
-  
+  # client:
+  #   build:
+  #     context: ./client  # Build the client image from the "client" directory
+  #   container_name: client
+  #   environment:
+  #     - CENTRAL_REGISTRY_HOST=server1
+  #   stdin_open: true       # Keep stdin open to allow user input
+  #   tty: true              # Enable an interactive terminal
+
     
 
 networks:

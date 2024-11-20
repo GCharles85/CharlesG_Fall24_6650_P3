@@ -1,5 +1,6 @@
 import java.rmi.Remote;
 import java.rmi.RemoteException;
+/* TODO Implement methods */
 
 // Define the interface for remote methods
 public interface HandleRequestsInterface extends Remote {
@@ -14,11 +15,15 @@ public interface HandleRequestsInterface extends Remote {
     String validateRequest(String input) throws RemoteException;
 
     // Two-Phase Commit Methods
-    String prepare() throws RemoteException;
+    Boolean canCommit() throws RemoteException;
 
-    String commit() throws RemoteException;
+    Boolean getDecision() throws RemoteException;
 
-    String abort() throws RemoteException;
+    String doCommit() throws RemoteException;
+
+    String doAbort() throws RemoteException;
+
+    String haveCommitted() throws RemoteException;
 
     // Token Ring Methods
     void receiveToken() throws RemoteException;

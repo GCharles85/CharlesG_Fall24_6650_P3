@@ -74,12 +74,17 @@ public class HandleRequests implements HandleRequestsInterface {
     }
 
     // Two-Phase Commit Methods
-    public String prepare() throws RemoteException {
+    public Boolean canCommit() throws RemoteException {
+        //Call from coordinator to participant to ask whether it can commit a transaction.
+//Participant replies with its vote.
+        //maybe if has token
         isPrepared.set(true);
-        return "PREPARE phase complete. Ready to commit.";
+        return true;
     }
 
-    public String commit() throws RemoteException {
+    public String doCommit() throws RemoteException {
+        //Call from coordinator to participant to tell participant to commit its part of a
+//transaction
         if (isPrepared.get()) {
             commitState.set(true);
             isPrepared.set(false);
@@ -88,13 +93,21 @@ public class HandleRequests implements HandleRequestsInterface {
         return "Operation failed: Not in PREPARE phase.";
     }
 
-    public String abort() throws RemoteException {
+    public String doAbort() throws RemoteException {
+        //Call from coordinator to participant to tell participant to abort its part of a transaction
         if (isPrepared.get()) {
             commitState.set(false);
             isPrepared.set(false);
             return "ABORT phase complete. Changes rolled back.";
         }
         return "Operation failed: Not in PREPARE phase.";
+    }
+
+    public Boolean getDecision() throws RemoteException{
+//         Call from participant to coordinator to ask for the decision on a transaction when it
+// has voted Yes but has still had no reply after some delay. Used to recover from server
+// crash or delayed messages.
+        return true;
     }
 
     // Method to validate the request

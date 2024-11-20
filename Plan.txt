@@ -1,4 +1,0 @@
-Will use docker to create 5 servers
-Servers need to update a db
-- use P2 files
-- use two phase commit, mutex, etc readings

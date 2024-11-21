@@ -1,3 +1,4 @@
+#todo clean up
 version: "3.9"
 services:
   server1:
@@ -10,14 +11,15 @@ services:
     networks:
       - kv-network
   server2:
-    depends_on:
-        - server1
     build:
       context: .
     container_name: server2
-    command: ["2", "3", "false"]
+    command: ["2", "1", "false"]
     environment:
       - CENTRAL_REGISTRY_HOST=server1
+    ports:
+      - "1099:1099" # Expose RMI registry port
+      - "1100:1100" # Expose remote object port
     networks:
       - kv-network
   # client:

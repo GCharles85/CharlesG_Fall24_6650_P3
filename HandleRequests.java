@@ -1,21 +1,33 @@
 import java.rmi.RemoteException;
+import java.util.ArrayList;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.logging.*;
 import java.rmi.registry.Registry;
 import java.rmi.registry.LocateRegistry;
+import java.util.Timer;
+import java.util.TimerTask;
 
 // Define the interface for your RPC methods (PUT, GET, DELETE)
+//todo add override annotation to appropriate methods
 public class HandleRequests implements HandleRequestsInterface {
 
     private ConcurrentHashMap<String, String> keyValueStore;
     private String serverId;
     private String nextServerId; // To store the address of the next server in the token ring
     private boolean hasToken = false; // Indicates if this server has the token
+    private ArrayList<String> job_queue;
+    private static final long TOKEN_TIMER_MS = 1000; // 1000 ms
+    private ArrayList<String> participants;
+    private static final Logger LOGGER = Logger.getLogger(Server.class.getName());
 
     public HandleRequests(String serverId, String nextServer) {
         this.keyValueStore = new ConcurrentHashMap<>();
         this.serverId = serverId;
         this.nextServerId = nextServer;
+        job_queue = new ArrayList<String>();
+        participants = new ArrayList<String>();
+        LOGGER.setLevel(Level.SEVERE);
     }
 
     // Two-Phase Commit States
@@ -24,26 +36,65 @@ public class HandleRequests implements HandleRequestsInterface {
 
     // Token Ring Logic to Enter Critical Section
     public synchronized void receiveToken() {
-        hasToken = true;
         System.out.println("Server " + serverId + " received the token.");
+        hasToken = true;
+        if(!job_queue.isEmpty()){
+            processJobs();
+        }
+        
+    }
+
+    public void setInitToken(){
+        hasToken = true;
+    }
+
+    public synchronized void processJobs(){
+        Timer timer = new Timer();
+        long startTime = System.currentTimeMillis();
+
+        timer.schedule(new TimerTask() {
+            @Override
+            public void run() {
+                if (System.currentTimeMillis() - startTime >= TOKEN_TIMER_MS) {
+                    System.out.println("Server " + serverId + " reached time limit, passing token");
+                    timer.cancel();
+                    passToken();
+                }
+            }
+        }, 0, 100); // Check every 100ms
+
+        for(String request : job_queue){
+            if (System.currentTimeMillis() - startTime >= TOKEN_TIMER_MS) {
+                break;
+            }
+            try {
+                validateRequest(request);
+            }catch(Exception e){
+                e.printStackTrace();
+            }
+            
+        }
     }
 
     public synchronized void passToken() {
-        hasToken = false;
-        // Logic to pass token to next server (e.g., through RMI)
-        System.out.println(serverId + " passing token to " + nextServerId);
+        if(hasToken){
+            hasToken = false;
+            // Logic to pass token to next server (e.g., through RMI)
+            System.out.println(serverId + " passing token to " + nextServerId);
+            
+            try{
+                Registry registry = LocateRegistry.getRegistry(nextServerId, 1099);
+                HandleRequestsInterface nextServer = 
+                (HandleRequestsInterface) registry.lookup("HandleRequests-" + nextServerId);
+                nextServer.receiveToken();
+            }catch(Exception e){
+                e.printStackTrace();
+            }
+            
         
-        try{
-            Registry registry = LocateRegistry.getRegistry(nextServerId, 1099);
-            HandleRequestsInterface nextServer = 
-            (HandleRequestsInterface) registry.lookup("HandleRequests-" + nextServerId);
-            nextServer.receiveToken();
-        }catch(Exception e){
-            e.printStackTrace();
+            
         }
-        
-        this.hasToken = false;  // Pass token, so this server no longer has it
-        System.out.println("Server " + serverId + " passing token to " + nextServerId);
+        System.out.println(serverId + " Doesnt have token");
     }
 
     @Override
@@ -73,12 +124,76 @@ public class HandleRequests implements HandleRequestsInterface {
         return "Operation failed: Server not in prepared state.";
     }
 
+    public Boolean canCommit() {
+        boolean allCanCommit = true; // Assume all participants can commit initially
+    
+        for (String participant : participants) {
+            try {
+                // Look up the registry for the participant
+                Registry registry = LocateRegistry.getRegistry(participant, 1099);
+                HandleRequestsInterface participantServer = 
+                    (HandleRequestsInterface) registry.lookup("HandleRequests-" + participant);
+    
+                // Check if the participant can commit
+                if (!participantServer.responseToCanCommit()) {
+                    // If any participant cannot commit, set to false
+                    allCanCommit = false;
+                    break;
+                }
+            } catch (Exception e) {
+                // Print stack trace and set allCanCommit to false if an exception occurs
+                e.printStackTrace();
+                allCanCommit = false;
+                break;
+            }
+        }
+    
+        return allCanCommit; // Return the final decision
+    }
+    
+
     // Two-Phase Commit Methods
-    public Boolean canCommit() throws RemoteException {
+    public Boolean responseToCanCommit() throws RemoteException {
         //Call from coordinator to participant to ask whether it can commit a transaction.
 //Participant replies with its vote.
         //maybe if has token
-        isPrepared.set(true);
+        if(job_queue.isEmpty()){
+            isPrepared.set(true);
+            
+            //wait 5 sec for command from coordinator
+            // Create a thread to simulate the 5-second wait
+            Thread waitThread = new Thread(() -> {
+                try {
+                    // Wait for 5 seconds
+                    for (int i = 0; i < 5; i++) {
+                        if (commitState.get()) {
+                            System.out.println("Coordinator's call received!");
+                            return;
+                        }
+                        Thread.sleep(1000); // Sleep for 1 second
+                    }
+
+                    // If no call received after 5 seconds, call getDecision
+                    System.out.println("No call from coordinator after 5 seconds. Calling getDecision...");
+                    try{
+                        getDecision();
+                    }catch(Exception e){
+                        e.printStackTrace();
+                    }
+                    
+                } catch (InterruptedException e) {
+                    System.err.println("Error while waiting for coordinator: " + e.getMessage());
+                }
+            });
+
+            waitThread.start();
+            return true;
+        }
+
+        return false;
+    }
+
+    public Boolean haveCommitted() throws RemoteException{
         return true;
     }
 
@@ -88,19 +203,39 @@ public class HandleRequests implements HandleRequestsInterface {
         if (isPrepared.get()) {
             commitState.set(true);
             isPrepared.set(false);
-            return "COMMIT phase complete.";
+            for(String participant : participants){
+                try{
+                    Registry registry = LocateRegistry.getRegistry(participant, 1099);
+                    HandleRequestsInterface particpantServer = 
+                    (HandleRequestsInterface) registry.lookup("HandleRequests-" + participant);
+    
+                    particpantServer.haveCommitted(); //todo 
+                }catch(Exception e){
+                    e.printStackTrace();
+                }
+            }
+            
         }
         return "Operation failed: Not in PREPARE phase.";
     }
 
-    public String doAbort() throws RemoteException {
+    public String doAbort() throws RemoteException {//todo
         //Call from coordinator to participant to tell participant to abort its part of a transaction
-        if (isPrepared.get()) {
-            commitState.set(false);
-            isPrepared.set(false);
-            return "ABORT phase complete. Changes rolled back.";
+        try{
+            Registry registry = LocateRegistry.getRegistry(nextServerId, 1099);
+            HandleRequestsInterface nextServer = 
+            (HandleRequestsInterface) registry.lookup("HandleRequests-" + nextServerId);
+            nextServer.receiveToken();
+        }catch(Exception e){
+            e.printStackTrace();
         }
-        return "Operation failed: Not in PREPARE phase.";
+        return ""; //todo
+                // if (isPrepared.get()) {
+        //     commitState.set(false);
+        //     isPrepared.set(false);
+        //     return "ABORT phase complete. Changes rolled back.";
+        // }
+        // return "Operation failed: Not in PREPARE phase.";
     }
 
     public Boolean getDecision() throws RemoteException{
@@ -156,7 +291,16 @@ public class HandleRequests implements HandleRequestsInterface {
 
     // Method to process requests
     public String processRequest(String request) throws RemoteException {
-        return validateRequest(request);
+        // put in queue
+
+        job_queue.add(request);
+        return "";
+
+        //return validateRequest(request);
+    }
+
+    public static void Main(String[] args){
+
     }
 
 }

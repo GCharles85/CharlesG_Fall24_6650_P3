@@ -2,6 +2,7 @@ import java.rmi.Naming;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.util.Scanner;
+import java.util.UUID;
 
 public class NetworkClient {
 
@@ -37,12 +38,12 @@ public class NetworkClient {
                         // Simulate sending multiple requests to the server
                         System.out.println("Sending requests to server: " + targetServerId);
 
-                        System.out.println(serverStub.processRequest("PUT(key1, value1)"));
-                        System.out.println(serverStub.processRequest("PUT(key2, value2)"));
-                        System.out.println(serverStub.processRequest("GET(key1)"));
-                        System.out.println(serverStub.processRequest("GET(key2)"));
-                        System.out.println(serverStub.processRequest("DELETE(key1)"));
-                        System.out.println(serverStub.processRequest("DELETE(key2)"));
+                        System.out.println(serverStub.processRequest("PUT(key1, value1)", UUID.randomUUID().hashCode()));
+                        System.out.println(serverStub.processRequest("PUT(key2, value2)", UUID.randomUUID().hashCode()));
+                        System.out.println(serverStub.processRequest("GET(key1)", UUID.randomUUID().hashCode()));
+                        System.out.println(serverStub.processRequest("GET(key2)", UUID.randomUUID().hashCode()));
+                        System.out.println(serverStub.processRequest("DELETE(key1)", UUID.randomUUID().hashCode()));
+                        System.out.println(serverStub.processRequest("DELETE(key2)", UUID.randomUUID().hashCode()));
 
                     } catch (Exception e) {
                         System.err.println("Error communicating with server " + targetServerId + ": " + e.getMessage());

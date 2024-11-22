@@ -1,3 +1,4 @@
+import java.io.Serializable;
 import java.rmi.Remote;
 import java.rmi.RemoteException;
 /* TODO Implement methods 
@@ -6,29 +7,35 @@ import java.rmi.RemoteException;
 */
 
 // Define the interface for remote methods
-public interface HandleRequestsInterface extends Remote {
+public interface HandleRequestsInterface extends Remote, Serializable {
+    enum Decision{COMMIT, ABORT, NONE}
+
     String put(String key, String value) throws RemoteException;
 
     String get(String key) throws RemoteException;
 
     String delete(String key) throws RemoteException;
 
-    String processRequest(String request) throws RemoteException;
+    String processRequest(String request, int requestID) throws RemoteException;
 
     String validateRequest(String input) throws RemoteException;
 
     // Two-Phase Commit Methods
     Boolean canCommit() throws RemoteException; //done for now
 
-    Boolean getDecision() throws RemoteException;
+    void getDecision() throws RemoteException;
 
-    String doCommit() throws RemoteException;
+    Decision sendDecision() throws RemoteException;
 
-    String doAbort() throws RemoteException;
+    void doCommit() throws RemoteException;
+
+    Boolean doAbort() throws RemoteException;
 
     Boolean haveCommitted() throws RemoteException;
 
-    Boolean responseToCanCommit() throws RemoteException;
+    public Boolean responseToCanCommit() throws RemoteException;
+
+    public Boolean abort();
 
     // Token Ring Methods
     void receiveToken() throws RemoteException;

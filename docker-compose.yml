@@ -1,11 +1,11 @@
-#todo clean up
+
 version: "3.9"
 services:
   server1:
     build:
       context: .
     container_name: server1
-    command: ["1", "2", "true"]  # server1 starts with the token
+    command: ["1", "2"]  # server1 starts with the token
     environment:
       - CENTRAL_REGISTRY_HOST=server1
       - PARTICIPANTS=server2,server3
@@ -15,39 +15,22 @@ services:
     build:
       context: .
     container_name: server2
-    command: ["2", "3", "false"]
+    command: ["2", "3"]
     environment:
       - CENTRAL_REGISTRY_HOST=server1
       - PARTICIPANTS=server2,server3
-    # ports:
-    #   - "1099:1099" # Expose RMI registry port
-    #   - "1100:1100" # Expose remote object port
     networks:
       - kv-network
   server3:
     build:
       context: .
     container_name: server3
-    command: ["3", "1", "false"]
+    command: ["3", "1"]
     environment:
       - CENTRAL_REGISTRY_HOST=server1
       - PARTICIPANTS=server2,server3
-    # ports:
-    #   - "1099:1099" # Expose RMI registry port
-    #   - "1100:1100" # Expose remote object port
     networks:
       - kv-network
-  # client:
-  #   build:
-  #     context: ./client  # Build the client image from the "client" directory
-  #   container_name: client
-  #   environment:
-  #     - CENTRAL_REGISTRY_HOST=server1
-  #   stdin_open: true       # Keep stdin open to allow user input
-  #   tty: true              # Enable an interactive terminal
-
-    
-
 networks:
   kv-network:
     driver: bridge

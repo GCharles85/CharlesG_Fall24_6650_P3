@@ -9,8 +9,8 @@ public class Server {
 // todo clean up
     public static void main(String[] args) {
         try {
-            if (args.length < 3) {
-                System.err.println("Usage: java Server <serverId> <nextServer> <hasToken>");
+            if (args.length < 2) {
+                System.err.println("Usage: java Server <serverId> <nextServer>");
                 return;
             }
             LOGGER.setLevel(Level.SEVERE);

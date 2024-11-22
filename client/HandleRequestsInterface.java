@@ -1,7 +1,7 @@
 import java.io.Serializable;
 import java.rmi.Remote;
 import java.rmi.RemoteException;
-/* TODO Implement methods 
+/* TODO Test comms with client 
  *      Fix code duplication with handlereqinterface
  * 
 */
@@ -35,7 +35,7 @@ public interface HandleRequestsInterface extends Remote, Serializable {
 
     public Boolean responseToCanCommit() throws RemoteException;
 
-    public Boolean abort();
+    public Boolean abort() throws RemoteException;
 
     // Token Ring Methods
     void receiveToken() throws RemoteException;

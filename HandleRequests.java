@@ -20,7 +20,6 @@ import java.util.concurrent.ConcurrentHashMap.KeySetView;
 import java.util.concurrent.BlockingQueue;
 
 // Define the interface for your RPC methods (PUT, GET, DELETE)
-//todo DONE FOR NOW add override annotation to appropriate methods
 public class HandleRequests implements HandleRequestsInterface {
 
     private ConcurrentHashMap<String, String> keyValueStore_original;
@@ -140,7 +139,7 @@ public class HandleRequests implements HandleRequestsInterface {
                     HandleRequestsInterface particpantServer = 
                     (HandleRequestsInterface) registry.lookup("HandleRequests-" + participant);
 
-                    particpantServer.processRequest(request.getKey(), request.getValue()); //todo 
+                    particpantServer.processRequest(request.getKey(), request.getValue());  
                 }
             }catch(Exception e){
                 e.printStackTrace();
@@ -280,7 +279,7 @@ public class HandleRequests implements HandleRequestsInterface {
                     HandleRequestsInterface particpantServer = 
                     (HandleRequestsInterface) registry.lookup("HandleRequests-" + participant);
     
-                    particpantServer.haveCommitted(); //todo 
+                    particpantServer.haveCommitted();
                 }catch(Exception e){
                     e.printStackTrace();
                 }
@@ -291,8 +290,7 @@ public class HandleRequests implements HandleRequestsInterface {
     }
 
     @Override
-    public Boolean doAbort() throws RemoteException {//todo
-        Boolean allAborted = false;
+    public Boolean doAbort() throws RemoteException {
         //Call from coordinator to participant to tell participant to abort its part of a transaction
         for (String participant : participants) {
             try {
@@ -333,13 +331,10 @@ public class HandleRequests implements HandleRequestsInterface {
                 this.responseToCanCommit();
             }
         } catch (AccessException e) {
-            // TODO Auto-generated catch block
             e.printStackTrace();
         } catch (RemoteException e) {
-            // TODO Auto-generated catch block
             e.printStackTrace();
         } catch (NotBoundException e) {
-            // TODO Auto-generated catch block
             e.printStackTrace();
         }
         

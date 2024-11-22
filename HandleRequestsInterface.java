@@ -1,7 +1,7 @@
 import java.io.Serializable;
 import java.rmi.Remote;
 import java.rmi.RemoteException;
-/* TODO Implement methods 
+/* TODO Test comms with client 
  *      Fix code duplication with handlereqinterface
  * 
 */

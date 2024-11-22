@@ -23,7 +23,7 @@ public interface HandleRequestsInterface extends Remote, Serializable {
 
     Boolean getDecision() throws RemoteException;
 
-    String doCommit() throws RemoteException;
+    void doCommit() throws RemoteException;
 
     String doAbort() throws RemoteException;
 

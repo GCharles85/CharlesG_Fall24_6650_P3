@@ -4,19 +4,22 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.*;
 import java.rmi.registry.Registry;
+import java.sql.Array;
 import java.rmi.registry.LocateRegistry;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.BlockingQueue;
 
 // Define the interface for your RPC methods (PUT, GET, DELETE)
-//todo add override annotation to appropriate methods
+//todo DONE FOR NOW add override annotation to appropriate methods
 public class HandleRequests implements HandleRequestsInterface {
 
     private ConcurrentHashMap<String, String> keyValueStore;
     private String serverId;
     private String nextServerId; // To store the address of the next server in the token ring
     private boolean hasToken = false; // Indicates if this server has the token
-    private ArrayList<String> job_queue;
+    private BlockingQueue<String> job_queue;
     private static final long TOKEN_TIMER_MS = 1000; // 1000 ms
     private ArrayList<String> participants;
     private static final Logger LOGGER = Logger.getLogger(Server.class.getName());
@@ -25,7 +28,7 @@ public class HandleRequests implements HandleRequestsInterface {
         this.keyValueStore = new ConcurrentHashMap<>();
         this.serverId = serverId;
         this.nextServerId = nextServer;
-        job_queue = new ArrayList<String>();
+        job_queue = new LinkedBlockingQueue<String>();
         participants = new ArrayList<String>();
         LOGGER.setLevel(Level.SEVERE);
     }
@@ -35,6 +38,7 @@ public class HandleRequests implements HandleRequestsInterface {
     private AtomicBoolean commitState = new AtomicBoolean(false);
 
     // Token Ring Logic to Enter Critical Section
+    @Override
     public synchronized void receiveToken() {
         System.out.println("Server " + serverId + " received the token.");
         hasToken = true;
@@ -44,6 +48,7 @@ public class HandleRequests implements HandleRequestsInterface {
         
     }
 
+    @Override
     public void setInitToken(){
         hasToken = true;
     }
@@ -59,23 +64,23 @@ public class HandleRequests implements HandleRequestsInterface {
                     System.out.println("Server " + serverId + " reached time limit, passing token");
                     timer.cancel();
                     passToken();
+                }else{
+                    while(!job_queue.isEmpty() && hasToken == true){
+                        System.out.println("doing job cause I have token");
+                        try {
+                            System.out.println(validateRequest(job_queue.take()));
+                        }catch(Exception e){
+                            e.printStackTrace();
+                        }
+                    }
+                    timer.cancel();
+                    passToken();
                 }
             }
         }, 0, 100); // Check every 100ms
-
-        for(String request : job_queue){
-            if (System.currentTimeMillis() - startTime >= TOKEN_TIMER_MS) {
-                break;
-            }
-            try {
-                validateRequest(request);
-            }catch(Exception e){
-                e.printStackTrace();
-            }
-            
-        }
     }
 
+    @Override
     public synchronized void passToken() {
         if(hasToken){
             hasToken = false;
@@ -100,12 +105,11 @@ public class HandleRequests implements HandleRequestsInterface {
     @Override
     public synchronized String put(String key, String value) throws RemoteException {
         // Prepare phase
-        if (isPrepared.get()) {
+        
             keyValueStore.put(key, value);
             //commitState.set(true); // Simulate successful commit
             return "Key " + key + " with value " + value + " successfully committed.";
-        }
-        return "Operation failed: Server not in prepared state.";
+      
     }
 
     @Override
@@ -116,14 +120,14 @@ public class HandleRequests implements HandleRequestsInterface {
 
     @Override
     public synchronized String delete(String key) throws RemoteException {
-        if (isPrepared.get()) {
+        
             keyValueStore.remove(key);
             //commitState.set(true); // Simulate successful commit
             return "Key " + key + " successfully deleted.";
-        }
-        return "Operation failed: Server not in prepared state.";
+       
     }
 
+    @Override
     public Boolean canCommit() {
         boolean allCanCommit = true; // Assume all participants can commit initially
     
@@ -153,12 +157,13 @@ public class HandleRequests implements HandleRequestsInterface {
     
 
     // Two-Phase Commit Methods
+    @Override
     public Boolean responseToCanCommit() throws RemoteException {
         //Call from coordinator to participant to ask whether it can commit a transaction.
 //Participant replies with its vote.
         //maybe if has token
         if(job_queue.isEmpty()){
-            isPrepared.set(true);
+            //isPrepared.set(true);
             
             //wait 5 sec for command from coordinator
             // Create a thread to simulate the 5-second wait
@@ -193,16 +198,19 @@ public class HandleRequests implements HandleRequestsInterface {
         return false;
     }
 
+    @Override
     public Boolean haveCommitted() throws RemoteException{
         return true;
     }
 
-    public String doCommit() throws RemoteException {
+    @Override
+    public void doCommit() throws RemoteException {
+        
         //Call from coordinator to participant to tell participant to commit its part of a
 //transaction
-        if (isPrepared.get()) {
+        //if (isPrepared.get()) {
             commitState.set(true);
-            isPrepared.set(false);
+            //isPrepared.set(false);
             for(String participant : participants){
                 try{
                     Registry registry = LocateRegistry.getRegistry(participant, 1099);
@@ -215,10 +223,11 @@ public class HandleRequests implements HandleRequestsInterface {
                 }
             }
             
-        }
-        return "Operation failed: Not in PREPARE phase.";
+        //}
+        //return "Operation failed: Not in PREPARE phase.";
     }
 
+    @Override
     public String doAbort() throws RemoteException {//todo
         //Call from coordinator to participant to tell participant to abort its part of a transaction
         try{
@@ -238,6 +247,7 @@ public class HandleRequests implements HandleRequestsInterface {
         // return "Operation failed: Not in PREPARE phase.";
     }
 
+    @Override
     public Boolean getDecision() throws RemoteException{
 //         Call from participant to coordinator to ask for the decision on a transaction when it
 // has voted Yes but has still had no reply after some delay. Used to recover from server
@@ -246,6 +256,7 @@ public class HandleRequests implements HandleRequestsInterface {
     }
 
     // Method to validate the request
+    @Override
     public String validateRequest(String input) throws RemoteException {
         if (input == null || input.isEmpty()) {
             return "Error: Request is empty or null.";
@@ -290,6 +301,7 @@ public class HandleRequests implements HandleRequestsInterface {
     }
 
     // Method to process requests
+    @Override
     public String processRequest(String request) throws RemoteException {
         // put in queue
 

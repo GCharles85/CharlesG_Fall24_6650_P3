@@ -1,3 +1,4 @@
+import java.rmi.Naming;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.util.Scanner;
@@ -27,10 +28,11 @@ public class NetworkClient {
 
                     try {
                         // Connect to the centralized registry
-                        Registry registry = LocateRegistry.getRegistry(CENTRAL_REGISTRY_HOST, 1099);
+                        //Registry registry = LocateRegistry.getRegistry(targetServerId, 1099);
 
                         // Look up the target server
-                        HandleRequestsInterface serverStub = (HandleRequestsInterface) registry.lookup("HandleRequests-" + targetServerId);
+                        System.out.println("Looking up target server");
+                        HandleRequestsInterface serverStub = (HandleRequestsInterface) Naming.lookup("rmi://"+"server"+targetServerId+":1099/HandleRequests-server" + targetServerId);
 
                         // Simulate sending multiple requests to the server
                         System.out.println("Sending requests to server: " + targetServerId);

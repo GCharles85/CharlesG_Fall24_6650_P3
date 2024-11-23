@@ -19,7 +19,6 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ConcurrentHashMap.KeySetView;
 import java.util.concurrent.BlockingQueue;
 
-// Define the interface for your RPC methods (PUT, GET, DELETE)
 public class HandleRequests implements HandleRequestsInterface {
 
     private ConcurrentHashMap<String, String> keyValueStore_original;
@@ -28,7 +27,7 @@ public class HandleRequests implements HandleRequestsInterface {
     private String nextServerId; // To store the address of the next server in the token ring
     private boolean hasToken = false; // Indicates if this server has the token
     private BlockingQueue<Map.Entry<String, Integer>> job_queue;
-    private Set<Integer> request_IDs;
+    private Set<String> requests;
     private static final long TOKEN_TIMER_MS = 1000; // 1000 ms
     private ArrayList<String> participants;
     private Decision decision = HandleRequestsInterface.Decision.NONE;
@@ -40,20 +39,19 @@ public class HandleRequests implements HandleRequestsInterface {
         this.serverId = serverId;
         this.nextServerId = nextServer;
         job_queue = new LinkedBlockingQueue<>();
-        request_IDs = new HashSet<>();
+        requests = new HashSet<>();
+        LOGGER.setLevel(Level.ALL);
 
         participants = new ArrayList<String>(Arrays.asList(System.getenv("PARTICIPANTS").split(",")));
-        LOGGER.setLevel(Level.SEVERE);
     }
 
     // Two-Phase Commit States
-    //private AtomicBoolean isPrepared = new AtomicBoolean(false);
     private AtomicBoolean commitState = new AtomicBoolean(false);
 
     // Token Ring Logic to Enter Critical Section
     @Override
     public synchronized void receiveToken() throws RemoteException {
-        System.out.println("Server " + serverId + " received the token.");
+        LOGGER.log(Level.INFO, "Server " + serverId + " received the token.");
         hasToken = true;
         if(!job_queue.isEmpty()){
             processJobs();
@@ -61,11 +59,12 @@ public class HandleRequests implements HandleRequestsInterface {
             if(canCommit() && this.haveCommitted()){
                 decision = Decision.COMMIT;
                 doCommit();
-                System.out.println("All committed");      
+                LOGGER.log(Level.INFO, "All committed");     
             }else{
                 decision = Decision.ABORT;
                 this.abort();
                 doAbort();
+                LOGGER.log(Level.INFO, "All aborted");
                 System.out.println("All aborted");
             }
         }
@@ -77,7 +76,7 @@ public class HandleRequests implements HandleRequestsInterface {
         if(hasToken){
             hasToken = false;
             // Logic to pass token to next server (e.g., through RMI)
-            System.out.println(serverId + " passing token to " + nextServerId);
+            LOGGER.log(Level.INFO, serverId + " passing token to " + nextServerId);
             
             try{
                 Registry registry = LocateRegistry.getRegistry(nextServerId, 1099);
@@ -85,13 +84,14 @@ public class HandleRequests implements HandleRequestsInterface {
                 (HandleRequestsInterface) registry.lookup("HandleRequests-" + nextServerId);
                 nextServer.receiveToken();
             }catch(Exception e){
+                LOGGER.log(Level.SEVERE, e.getMessage());
                 e.printStackTrace();
             }
             
         
             
         }
-        System.out.println(serverId + " Doesnt have token");
+        //LOGGER.log(Level.INFO, serverId + " Doesn't have token");
     }
 
     @Override
@@ -107,12 +107,11 @@ public class HandleRequests implements HandleRequestsInterface {
             @Override
             public void run() {
                 if (System.currentTimeMillis() - startTime >= TOKEN_TIMER_MS) {
-                    System.out.println("Server " + serverId + " reached time limit, passing token");
+                    //LOGGER.log(Level.INFO, "Server " + serverId + " reached time limit, passing token");
                     timer.cancel();
                     passToken();
                 }else{
                     while(!job_queue.isEmpty() && hasToken == true){
-                        System.out.println("doing job cause I have token");
                         try {
                             //save current state
                             saveCurrentState();
@@ -121,6 +120,7 @@ public class HandleRequests implements HandleRequestsInterface {
                             sendRequestToAllOtherServers(request);
                             System.out.println(validateRequest(request.getKey()));
                         }catch(Exception e){
+                            LOGGER.log(Level.SEVERE, e.getMessage());
                             e.printStackTrace();
                         }
                     }
@@ -132,14 +132,16 @@ public class HandleRequests implements HandleRequestsInterface {
     }
 
     public synchronized void sendRequestToAllOtherServers(Map.Entry<String, Integer> request){
+        if (request == null || request.getValue() == 1) {
+            return;
+        } 
         for(String participant : participants){
             try{
                 if(!participant.equals(serverId)){
                     Registry registry = LocateRegistry.getRegistry(participant, 1099);
                     HandleRequestsInterface particpantServer = 
                     (HandleRequestsInterface) registry.lookup("HandleRequests-" + participant);
-
-                    particpantServer.processRequest(request.getKey(), request.getValue());  
+                    particpantServer.processRequest(request.getKey(), 1);  
                 }
             }catch(Exception e){
                 e.printStackTrace();
@@ -150,17 +152,13 @@ public class HandleRequests implements HandleRequestsInterface {
     public synchronized void saveCurrentState(){
         //copy current kv store to original kv store
         keyValueStore_original = new ConcurrentHashMap<String, String>(keyValueStore_current);
-       
     }
 
 
     @Override
     public synchronized String put(String key, String value) throws RemoteException {
-        
-        
             keyValueStore_current.put(key, value);
-            //commitState.set(true); // Simulate successful commit
-            return "Key " + key + " with value " + value + " successfully committed.";
+            return "Key " + key + " with value " + value + " successfully put.";
       
     }
 
@@ -172,11 +170,8 @@ public class HandleRequests implements HandleRequestsInterface {
 
     @Override
     public synchronized String delete(String key) throws RemoteException {
-        
             keyValueStore_current.remove(key);
-            //commitState.set(true); // Simulate successful commit
-            return "Key " + key + " successfully deleted.";
-       
+            return "Key " + key + " successfully deleted."; 
     }
 
     //Two-phase commit methods
@@ -186,7 +181,6 @@ public class HandleRequests implements HandleRequestsInterface {
         
         for (String participant : participants) {
             try {
-                System.out.println("participant " + participant);
                 // Look up the registry for the participant
                 Registry registry = LocateRegistry.getRegistry(participant, 1099);
                 HandleRequestsInterface participantServer = 
@@ -199,13 +193,13 @@ public class HandleRequests implements HandleRequestsInterface {
                     break;
                 }
             } catch (NotBoundException e) {
-                // Print stack trace and set allCanCommit to false if an exception occurs
-                e.printStackTrace();
+                // Print stack trace and set allCanCommit to false if an exception occurs 
+                LOGGER.log(Level.SEVERE, e.getMessage());
                 allCanCommit = false;
+                e.printStackTrace();
                 break;
             }
         }
-       
         allCanCommit = this.responseToCanCommit();
         return allCanCommit;
     }
@@ -214,7 +208,8 @@ public class HandleRequests implements HandleRequestsInterface {
     public Boolean abort() {
         // Revert to the original state
         keyValueStore_current = new ConcurrentHashMap<String, String>(keyValueStore_original);
-        System.out.println("Abort received by " + serverId +", Reverted to original state: ");
+        requests.clear();
+        LOGGER.log(Level.INFO, "Abort received by " + serverId +", Reverted to original state: ");
         return true;
     }
 
@@ -233,20 +228,20 @@ public class HandleRequests implements HandleRequestsInterface {
             long startTime = System.currentTimeMillis();
             while (System.currentTimeMillis() - startTime < 5000) { // 5 seconds
                 if (commitState.get()) {
-                    System.out.println("Commit state is true. Terminating monitoring thread.");
+                    //LOGGER.log(Level.INFO, "Commit state is true. Terminating monitoring thread.");
                     return; // Exit the thread
                 }
                 try {
                     Thread.sleep(100); // Check commitState every 100ms
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt(); // Restore interruption status
-                    System.err.println("Monitoring thread interrupted.");
+                    LOGGER.log(Level.SEVERE, e.getMessage() + "\nMonitoring thread interrupted.");
                     return;
                 }
             }
             // If 5 seconds pass and commitState is not true, call getDecision
             try {
-                System.out.println("5 seconds elapsed. Calling getDecision...");
+                //LOGGER.log(Level.INFO, "5 seconds elapsed. Calling getDecision...");
                 getDecision();
             } catch (Exception e) {
                 e.printStackTrace();
@@ -262,31 +257,26 @@ public class HandleRequests implements HandleRequestsInterface {
     @Override
     public Boolean haveCommitted() throws RemoteException{
         keyValueStore_original = new ConcurrentHashMap<String, String>(keyValueStore_current);
+        requests.clear();
         return true;
     }
 
     @Override
     public void doCommit() throws RemoteException {
         
-        //Call from coordinator to participant to tell participant to commit its part of a
-//transaction
-        //if (isPrepared.get()) {
-            commitState.set(true);
-            //isPrepared.set(false);
-            for(String participant : participants){
-                try{
-                    Registry registry = LocateRegistry.getRegistry(participant, 1099);
-                    HandleRequestsInterface particpantServer = 
-                    (HandleRequestsInterface) registry.lookup("HandleRequests-" + participant);
-    
-                    particpantServer.haveCommitted();
-                }catch(Exception e){
-                    e.printStackTrace();
-                }
+        //Call from coordinator to participant to tell participant to commit its part of a transaction
+        commitState.set(true);
+        for(String participant : participants){
+            try{
+                Registry registry = LocateRegistry.getRegistry(participant, 1099);
+                HandleRequestsInterface particpantServer = 
+                (HandleRequestsInterface) registry.lookup("HandleRequests-" + participant);
+
+                particpantServer.haveCommitted();
+            }catch(Exception e){
+                e.printStackTrace();
             }
-            
-        //}
-        //return "Operation failed: Not in PREPARE phase.";
+        }
     }
 
     @Override
@@ -303,8 +293,7 @@ public class HandleRequests implements HandleRequestsInterface {
                     return false;
                 };
             } catch (Exception e) {
-                // Print stack trace and set allCanCommit to false if an exception occurs
-                e.printStackTrace();
+                LOGGER.log(Level.SEVERE, e.getMessage());
                 break;
             }
         }
@@ -314,8 +303,8 @@ public class HandleRequests implements HandleRequestsInterface {
     @Override
     public void getDecision() throws RemoteException{
 //         Call from participant to coordinator to ask for the decision on a transaction when it
-// has voted Yes but has still had no reply after some delay. Used to recover from server
-// crash or delayed messages.
+//         has voted Yes but has still had no reply after some delay. Used to recover from server
+//         crash or delayed messages.
         
         // Look up the registry for the participant
         Registry registry = LocateRegistry.getRegistry(System.getenv("CENTRAL_REGISTRY_HOST"), 1099);
@@ -331,11 +320,11 @@ public class HandleRequests implements HandleRequestsInterface {
                 this.responseToCanCommit();
             }
         } catch (AccessException e) {
-            e.printStackTrace();
+            LOGGER.log(Level.SEVERE, e.getMessage());
         } catch (RemoteException e) {
-            e.printStackTrace();
+            LOGGER.log(Level.SEVERE, e.getMessage());
         } catch (NotBoundException e) {
-            e.printStackTrace();
+            LOGGER.log(Level.SEVERE, e.getMessage());
         }
         
         
@@ -349,7 +338,7 @@ public class HandleRequests implements HandleRequestsInterface {
     @Override
     public String validateRequest(String input) throws RemoteException {
         if (input == null || input.isEmpty()) {
-            return "Error: Request is empty or null.";
+            return "Error: Request is empty or null.";  
         }
         input = input.trim();
 
@@ -392,13 +381,12 @@ public class HandleRequests implements HandleRequestsInterface {
 
     // Method to process requests
     @Override
-    public String processRequest(String request, int requestID) throws RemoteException {
-        
+    public void processRequest(String request, int requestID) throws RemoteException {
         // put request-id pair in job queue and requestID in memory
-        if(request_IDs.add(requestID)){
+        if(requests.add(request)){
+            //LOGGER.log(Level.INFO, "Adding request "+ requestID + " to Server " + String.valueOf(serverId));
             job_queue.add(Map.entry(request, requestID));
         }
-        return "";
     }
 
     public static void Main(String[] args){

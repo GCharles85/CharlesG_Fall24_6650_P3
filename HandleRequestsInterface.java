@@ -1,12 +1,7 @@
 import java.io.Serializable;
 import java.rmi.Remote;
 import java.rmi.RemoteException;
-/* TODO Test comms with client 
- *      Fix code duplication with handlereqinterface
- * 
-*/
 
-// Define the interface for remote methods
 public interface HandleRequestsInterface extends Remote, Serializable {
     enum Decision{COMMIT, ABORT, NONE}
 
@@ -16,12 +11,12 @@ public interface HandleRequestsInterface extends Remote, Serializable {
 
     String delete(String key) throws RemoteException;
 
-    String processRequest(String request, int requestID) throws RemoteException;
+    void processRequest(String request, int requestID) throws RemoteException;
 
     String validateRequest(String input) throws RemoteException;
 
     // Two-Phase Commit Methods
-    Boolean canCommit() throws RemoteException; //done for now
+    Boolean canCommit() throws RemoteException; 
 
     void getDecision() throws RemoteException;
 

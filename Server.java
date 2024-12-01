@@ -2,8 +2,10 @@ import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
 import java.rmi.Naming;
+import java.util.logging.*;
 
 public class Server {
+    private static final Logger LOGGER = Logger.getLogger(Server.class.getName());
 
     public static void main(String[] args) {
         try {
@@ -29,14 +31,28 @@ public class Server {
             if ("server1".equals(serverId)) {
                 //give server1 the token
                 currentServer.setInitToken();
-            }
+            }else{
+                //start that a thread that blows up occasionally
+                
+                Thread blowUpThread = new Thread(() -> {
+                    try{
+                        Thread.sleep(15000);
+                        LOGGER.log(Level.SEVERE, String.format("\n %s Blowing up\n", serverId));
+                        throw new RuntimeException();
+                    }catch(InterruptedException e){
+                        LOGGER.log(Level.SEVERE, e.getMessage() + "\nBlow up thread interrupted.");
+                    } 
+                });
+                blowUpThread.start();  
+        }
+        
 
             while(true){
                 currentServer.passToken();
                 Thread.sleep(1000);
             }
         
-        } catch (Exception e) {
+        } catch (Exception e ) {
             System.err.println("Server exception: " + e.toString());
         }
     }

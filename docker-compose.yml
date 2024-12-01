@@ -4,6 +4,7 @@ services:
   server1:
     build:
       context: .
+    restart: always  
     container_name: server1
     command: ["1", "2"]  # server1 starts with the token
     environment:
@@ -14,6 +15,7 @@ services:
   server2:
     build:
       context: .
+    restart: always  
     container_name: server2
     command: ["2", "3"]
     environment:
@@ -24,6 +26,7 @@ services:
   server3:
     build:
       context: .
+    restart: always  
     container_name: server3
     command: ["3", "4"]
     environment:
@@ -34,6 +37,7 @@ services:
   server4:
     build:
       context: .
+    restart: always  
     container_name: server4
     command: ["4", "5"]
     environment:
@@ -44,6 +48,7 @@ services:
   server5:
     build:
       context: .
+    restart: always  
     container_name: server5
     command: ["5", "1"]
     environment:

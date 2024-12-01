@@ -31,6 +31,7 @@ public class HandleRequests implements HandleRequestsInterface {
     private static final long TOKEN_TIMER_MS = 1000; // 1000 ms
     private ArrayList<String> participants;
     private Decision decision = HandleRequestsInterface.Decision.NONE;
+    private Timer timer;
     private static final Logger LOGGER = Logger.getLogger(Server.class.getName());
 
     public HandleRequests(String serverId, String nextServer) {
@@ -40,6 +41,7 @@ public class HandleRequests implements HandleRequestsInterface {
         this.nextServerId = nextServer;
         job_queue = new LinkedBlockingQueue<>();
         requests = new HashSet<>();
+        timer = new Timer();
         LOGGER.setLevel(Level.ALL);
 
         participants = new ArrayList<String>(Arrays.asList(System.getenv("PARTICIPANTS").split(",")));
@@ -67,8 +69,7 @@ public class HandleRequests implements HandleRequestsInterface {
                 LOGGER.log(Level.INFO, "All aborted");
                 System.out.println("All aborted");
             }
-        }
-        
+        } 
     }
 
     @Override
@@ -100,9 +101,7 @@ public class HandleRequests implements HandleRequestsInterface {
     }
 
     public synchronized void processJobs(){
-        Timer timer = new Timer();
         long startTime = System.currentTimeMillis();
-
         timer.schedule(new TimerTask() {
             @Override
             public void run() {

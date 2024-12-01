@@ -6,54 +6,54 @@ services:
       context: .
     restart: always  
     container_name: server1
-    command: ["1", "2"]  # server1 starts with the token
+    command: ["1", "2a"]  # server1 starts with the token
     environment:
       - CENTRAL_REGISTRY_HOST=server1
-      - PARTICIPANTS=server1,server2,server3,server4,server5
+      - PARTICIPANTS=server1,server2a,server3a,server4l,server5l
     networks:
       - kv-network
   server2:
     build:
       context: .
     restart: always  
-    container_name: server2
-    command: ["2", "3"]
+    container_name: server2a
+    command: ["2a", "3a"]
     environment:
       - CENTRAL_REGISTRY_HOST=server1
-      - PARTICIPANTS=server1,server2,server3,server4,server5
+      - PARTICIPANTS=server1,server2a,server3a,server4l,server5l
     networks:
       - kv-network
   server3:
     build:
       context: .
     restart: always  
-    container_name: server3
-    command: ["3", "4"]
+    container_name: server3a
+    command: ["3a", "4l"]
     environment:
       - CENTRAL_REGISTRY_HOST=server1
-      - PARTICIPANTS=server1,server2,server3,server4,server5
+      - PARTICIPANTS=server1,server2a,server3a,server4l,server5l
     networks:
       - kv-network
   server4:
     build:
       context: .
     restart: always  
-    container_name: server4
-    command: ["4", "5"]
+    container_name: server4l
+    command: ["4l", "5l"]
     environment:
       - CENTRAL_REGISTRY_HOST=server1
-      - PARTICIPANTS=server1,server2,server3,server4,server5
+      - PARTICIPANTS=server1,server2a,server3a,server4l,server5l
     networks:
       - kv-network
   server5:
     build:
       context: .
     restart: always  
-    container_name: server5
-    command: ["5", "1"]
+    container_name: server5l
+    command: ["5l", "1"]
     environment:
       - CENTRAL_REGISTRY_HOST=server1
-      - PARTICIPANTS=server1,server2,server3,server4,server5
+      - PARTICIPANTS=server1,server2a,server3a,server4l,server5l
     networks:
       - kv-network
 networks:

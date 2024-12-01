@@ -1,3 +1,6 @@
+# PAXOS upgrades: Non-proposer servers set to automatically terminate at regular intervals
+#                 Proposers does not ask learners if they can commit, only acceptors. Learners can only #                 commit but cannot participate in the voting process
+
 # Project Setup Instructions
 
 This guide will walk you through the steps to set up and run the project using Docker. Follow the steps below carefully:

@@ -14,6 +14,7 @@ public class Server {
                 return;
             }
             String serverId = "server" + args[0];
+            LOGGER.log(Level.INFO, "Server ID is " + serverId);
             String nextServer = "server" + args[1];
 
             // Create the HandleRequests object with serverId 

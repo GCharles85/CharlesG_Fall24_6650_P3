@@ -26,11 +26,12 @@ public class HandleRequests implements HandleRequestsInterface {
     private String serverId;
     private String nextServerId; // To store the address of the next server in the token ring
     private boolean hasToken = false; // Indicates if this server has the token
-    private BlockingQueue<Map.Entry<String, Integer>> job_queue;
+    private BlockingQueue<Map.Entry<String, Long>> job_queue;
     private Set<String> requests;
     private static final long TOKEN_TIMER_MS = 1000; // 1000 ms
     private ArrayList<String> participants;
     private Decision decision = HandleRequestsInterface.Decision.NONE;
+    private long currentSequenceNumber = 0L;
     private static final Logger LOGGER = Logger.getLogger(Server.class.getName());
 
     public HandleRequests(String serverId, String nextServer) {
@@ -118,7 +119,7 @@ public class HandleRequests implements HandleRequestsInterface {
                             //save current state
                             saveCurrentState();
                             //send the request to all other servers
-                            Map.Entry<String, Integer> request = job_queue.poll();
+                            Map.Entry<String, Long> request = job_queue.poll();
                             sendRequestToAllOtherServers(request);
                             System.out.println(validateRequest(request.getKey()));
                         }catch(Exception e){
@@ -133,10 +134,13 @@ public class HandleRequests implements HandleRequestsInterface {
         }, 0, 100); // Check every 100ms
     }
 
-    public synchronized void sendRequestToAllOtherServers(Map.Entry<String, Integer> request){
-        if (request == null || request.getValue() == 1) {
+    private synchronized void sendRequestToAllOtherServers(Map.Entry<String, Long> request){
+        //Ensure that the request is not null and use the sequence number to ensure we have not seen it already
+        long newRequestSequenceNumber = request.getValue();
+        if (request == null || newRequestSequenceNumber <= currentSequenceNumber) {
             return;
         } 
+        currentSequenceNumber = newRequestSequenceNumber;
         for(String participant : participants){
             try{
                 if(!participant.equals(serverId)){
@@ -211,6 +215,7 @@ public class HandleRequests implements HandleRequestsInterface {
 
     public Boolean abort() {
         // Revert to the original state
+        // todo rewrite log
         keyValueStore_current = new ConcurrentHashMap<String, String>(keyValueStore_original);
         requests.clear();
         LOGGER.log(Level.INFO, "Abort received by " + serverId +", Reverted to original state: ");
@@ -385,7 +390,7 @@ public class HandleRequests implements HandleRequestsInterface {
 
     // Method to process requests
     @Override
-    public void processRequest(String request, int requestID) throws RemoteException {
+    public void processRequest(String request, long requestID) throws RemoteException {
         // put request-id pair in job queue and requestID in memory
         if(requests.add(request)){
             //LOGGER.log(Level.INFO, "Adding request "+ requestID + " to Server " + String.valueOf(serverId));

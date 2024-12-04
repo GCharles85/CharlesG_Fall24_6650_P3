@@ -1,10 +1,11 @@
 import java.rmi.Naming;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
+import java.rmi.server.RemoteServer;
 import java.util.Scanner;
 import java.util.UUID;
 
-public class NetworkClient {
+public class NetworkClient extends RemoteServer {
 
     public static void main(String[] args) {
 
@@ -26,11 +27,8 @@ public class NetworkClient {
                         System.out.println("Exiting client...");
                         break;
                     }
-                     //test with server3a
-                    // //TODO check if the targetServerId matches up to a known server in the participant list
-
+                    //check if the targetServerId matches up to a known server in the participant list
                     targetServerId = Integer.valueOf(targetServerId) <= 3 ? targetServerId+"a" : targetServerId+"l";
-
                     try {
                         // Connect to the centralized registry
                         //Registry registry = LocateRegistry.getRegistry(targetServerId, 1099);
@@ -43,14 +41,15 @@ public class NetworkClient {
                         String request = scanner.nextLine();
 
                         if(request.isEmpty()) {
+                            long sequenceNumber = System.currentTimeMillis();
                              // Simulate sending multiple requests to the server
                             System.out.println("Sending requests to server: " + targetServerId);
-                            serverStub.processRequest("PUT(key1, value1)", 0);
-                            serverStub.processRequest("PUT(key2, value2)", 0);
-                            serverStub.processRequest("GET(key1)", 0);
-                            serverStub.processRequest("GET(key2)", 0);
-                            serverStub.processRequest("DELETE(key1)", 0);
-                            serverStub.processRequest("DELETE(key2)", 0);
+                            serverStub.processRequest("PUT(key1, value1)", sequenceNumber);
+                            serverStub.processRequest("PUT(key2, value2)", sequenceNumber);
+                            serverStub.processRequest("GET(key1)", sequenceNumber);
+                            serverStub.processRequest("GET(key2)", sequenceNumber);
+                            serverStub.processRequest("DELETE(key1)", sequenceNumber);
+                            serverStub.processRequest("DELETE(key2)", sequenceNumber);
                         }else{
                             serverStub.processRequest(request,0);
                         }

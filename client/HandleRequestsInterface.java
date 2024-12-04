@@ -11,7 +11,7 @@ public interface HandleRequestsInterface extends Remote, Serializable {
 
     String delete(String key) throws RemoteException;
 
-    void processRequest(String request, int requestID) throws RemoteException;
+    void processRequest(String request, long requestID) throws RemoteException;
 
     String validateRequest(String input) throws RemoteException;
 

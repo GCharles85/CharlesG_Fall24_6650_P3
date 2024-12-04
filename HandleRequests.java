@@ -183,18 +183,18 @@ public class HandleRequests implements HandleRequestsInterface {
         
         for (String participant : participants) {
             try {
+                // Look up the registry for the participant only if the participant's container name has the "a" suffix meaning they are an acceptor
                 if(participant.matches("\\ba\\>")){
-                    // Look up the registry for the participant
-                Registry registry = LocateRegistry.getRegistry(participant, 1099);
-                HandleRequestsInterface participantServer = 
-                    (HandleRequestsInterface) registry.lookup("HandleRequests-" + participant);
-    
-                // Check if the participant can commit
-                if (!participantServer.responseToCanCommit()) {
-                    // If any participant cannot commit, set to false
-                    allCanCommit = false;
-                    break;
-                }
+                    Registry registry = LocateRegistry.getRegistry(participant, 1099);
+                    HandleRequestsInterface participantServer = 
+                        (HandleRequestsInterface) registry.lookup("HandleRequests-" + participant);
+        
+                    // Check if the participant can commit
+                    if (!participantServer.responseToCanCommit()) {
+                        // If any participant cannot commit, set to false
+                        allCanCommit = false;
+                        break;
+                    }
                 }
             } catch (NotBoundException e) {
                 // Print stack trace and set allCanCommit to false if an exception occurs 

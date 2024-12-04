@@ -1,5 +1,6 @@
-# PAXOS upgrades: Non-proposer servers set to automatically terminate at regular intervals
-#                 Proposers does not ask learners if they can commit, only acceptors. Learners can only #                 commit but cannot participate in the voting process
+# PAXOS upgrades: 
+# Non-proposer servers set to automatically terminate at regular intervals
+# Proposers does not ask learners if they can commit, only acceptors. Learners can only #                 # commit but cannot participate in the voting process (refer to canCommit() function in HandleRequests.#java - line 187)
 
 # Project Setup Instructions
 

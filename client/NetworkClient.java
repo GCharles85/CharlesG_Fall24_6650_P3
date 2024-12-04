@@ -20,12 +20,16 @@ public class NetworkClient {
                 while (true) {
                     System.out.println("Enter the server ID to interact with (or 'exit' to quit): ");
                     String targetServerId = scanner.nextLine();
-
+                   
                     // Exit condition
                     if ("exit".equalsIgnoreCase(targetServerId)) {
                         System.out.println("Exiting client...");
                         break;
                     }
+                     //test with server3a
+                    // //TODO check if the targetServerId matches up to a known server in the participant list
+
+                    targetServerId = Integer.valueOf(targetServerId) <= 3 ? targetServerId+"a" : targetServerId+"l";
 
                     try {
                         // Connect to the centralized registry
@@ -33,7 +37,7 @@ public class NetworkClient {
 
                         // Look up the target server
                         System.out.println("Looking up target server\n\n");
-                        HandleRequestsInterface serverStub = (HandleRequestsInterface) Naming.lookup("rmi://"+"server"+targetServerId+":1099/HandleRequests-server" + targetServerId);
+                        HandleRequestsInterface serverStub = (HandleRequestsInterface) Naming.lookup("rmi://"+"server"+targetServerId+":1099/HandleRequests-server"+targetServerId);
 
                         System.out.println("Would you like to send the hardcoded requests? If so, press enter.\nIf you want to send a single request, enter the request in one of the following formats:\nGET(key)\nPUT(key, value)\nDELETE(key)\n#########################\nPress enter or enter your request:");
                         String request = scanner.nextLine();
@@ -53,7 +57,7 @@ public class NetworkClient {
                         
 
                     } catch (Exception e) {
-                        System.err.println("Error communicating with server " + targetServerId);
+                        System.err.println("Error communicating with server " + targetServerId +  " " + e.getMessage());
                     }
                 }
             } catch (Exception e) {

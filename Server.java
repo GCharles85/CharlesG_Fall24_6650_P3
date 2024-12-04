@@ -14,7 +14,7 @@ public class Server {
                 return;
             }
             String serverId = "server" + args[0];
-            LOGGER.log(Level.INFO, "Server ID is " + serverId);
+            LOGGER.log(Level.INFO, "Server " + serverId + "coming online");
             String nextServer = "server" + args[1];
 
             // Create the HandleRequests object with serverId 
@@ -40,8 +40,8 @@ public class Server {
                         Thread.sleep(15000);
                         LOGGER.log(Level.SEVERE, String.format("\n %s Blowing up\n", serverId));
                         throw new RuntimeException();
-                    }catch(InterruptedException e){
-                        LOGGER.log(Level.SEVERE, e.getMessage() + "\nBlow up thread interrupted.");
+                    }catch(InterruptedException | RuntimeException e){
+                        LOGGER.log(Level.SEVERE, e.getMessage() + "\nBlow up thread interrupted or blown up.");
                     } 
                 });
                 blowUpThread.start();  

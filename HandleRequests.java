@@ -31,7 +31,6 @@ public class HandleRequests implements HandleRequestsInterface {
     private static final long TOKEN_TIMER_MS = 1000; // 1000 ms
     private ArrayList<String> participants;
     private Decision decision = HandleRequestsInterface.Decision.NONE;
-    private Timer timer;
     private static final Logger LOGGER = Logger.getLogger(Server.class.getName());
 
     public HandleRequests(String serverId, String nextServer) {
@@ -41,10 +40,13 @@ public class HandleRequests implements HandleRequestsInterface {
         this.nextServerId = nextServer;
         job_queue = new LinkedBlockingQueue<>();
         requests = new HashSet<>();
-        timer = new Timer();
         LOGGER.setLevel(Level.ALL);
 
         participants = new ArrayList<String>(Arrays.asList(System.getenv("PARTICIPANTS").split(",")));
+    }
+
+    String getParticipants(){
+        return "";
     }
 
     // Two-Phase Commit States
@@ -102,6 +104,7 @@ public class HandleRequests implements HandleRequestsInterface {
 
     public synchronized void processJobs(){
         long startTime = System.currentTimeMillis();
+        Timer timer = new Timer();
         timer.schedule(new TimerTask() {
             @Override
             public void run() {
@@ -180,7 +183,8 @@ public class HandleRequests implements HandleRequestsInterface {
         
         for (String participant : participants) {
             try {
-                // Look up the registry for the participant
+                if(participant.matches("\\ba\\>")){
+                    // Look up the registry for the participant
                 Registry registry = LocateRegistry.getRegistry(participant, 1099);
                 HandleRequestsInterface participantServer = 
                     (HandleRequestsInterface) registry.lookup("HandleRequests-" + participant);
@@ -190,6 +194,7 @@ public class HandleRequests implements HandleRequestsInterface {
                     // If any participant cannot commit, set to false
                     allCanCommit = false;
                     break;
+                }
                 }
             } catch (NotBoundException e) {
                 // Print stack trace and set allCanCommit to false if an exception occurs 
